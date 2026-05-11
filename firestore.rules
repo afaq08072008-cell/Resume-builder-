@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users cannot list other users
+      
+      // Strict update rule: cannot change email or uid, or subscriptionPlan (done via Admin)
+      allow update: if isOwner(userId) 
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL', 'onboarding'])
+        && request.resource.data.email == resource.data.email;
+        
+      allow create: if isOwner(userId)
+        && request.resource.data.subscriptionPlan == 'free'; 
+    }
+
+    // 2. Resumes
+    match /resumes/{resumeId} {
+      allow get: if isSignedIn() && (isOwner(resource.data.userId) || resource.data.isPublic == true);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() 
+        && request.resource.data.userId == request.auth.uid
+        && isValidId(resumeId);
+
+      allow update: if isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId;
+
+      allow delete: if isOwner(resource.data.userId);
+
+      // 3. Versions subcollection
+      match /versions/{versionId} {
+        allow get, list: if isOwner(get(/databases/$(database)/documents/resumes/$(resumeId)).data.userId);
+        allow create: if isOwner(get(/databases/$(database)/documents/resumes/$(resumeId)).data.userId);
+      }
+    }
+
+    // 4. AI Cache (Internal optimization, read only by client if we want to bypass server, 
+    // but usually we rely on it inside functions or secure client hooks)
+    match /ai_cache/{docId} {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn(); // Allow clients to seed cache if we trust the logic
+    }
+  }
+}

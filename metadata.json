@@ -1,0 +1,6 @@
+{
+  "name": "Apex-Resume Pro: Enterprise AI Builder",
+  "description": "Production-hardened, globally scalable SaaS platform for ATS-optimized resume creation with deep AI analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["AI Content Enhancement", "Real-time ATS Scoring", "PDF Export", "Global Job Queue", "Subscription Management"]
+}

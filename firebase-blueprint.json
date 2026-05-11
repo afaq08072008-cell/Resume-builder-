@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Enterprise user profile with billing and usage tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "subscriptionPlan": { "type": "string", "enum": ["free", "pro", "premium"] },
+        "stripeCustomerId": { "type": "string" },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "resumesCreated": { "type": "number" },
+            "aiCreditsUsed": { "type": "number" }
+          }
+        },
+        "onboarding": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "Multi-version resume with semantic scoring metadata",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "personalInfo": { "type": "object" },
+        "sections": { "type": "array" },
+        "settings": { "type": "object" },
+        "atsAnalysis": {
+          "type": "object",
+          "properties": {
+            "score": { "type": "number" },
+            "lastAnalyzed": { "type": "string" },
+            "breakdown": { "type": "object" }
+          }
+        },
+        "isPublic": { "type": "boolean" },
+        "slug": { "type": "string" },
+        "version": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title"]
+    },
+    "ResumeVersion": {
+      "title": "ResumeVersion",
+      "description": "Historical snapshot of a resume for version control",
+      "type": "object",
+      "properties": {
+        "resumeId": { "type": "string" },
+        "data": { "type": "object" },
+        "createdAt": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "SaaS users"
+    },
+    "/resumes/{resumeId}": {
+      "schema": "Resume",
+      "description": "Active user resumes"
+    },
+    "/resumes/{resumeId}/versions/{versionId}": {
+      "schema": "ResumeVersion",
+      "description": "Snapshot history for rollback and version tracking"
+    },
+    "/ai_cache/{hash}": {
+      "schema": "object",
+      "description": "AI response cache to optimize LLM costs"
+    }
+  }
+}
